@@ -100,7 +100,7 @@ public class JavaSourceParser {
                 processStatements(ifStmt.getElseStmt().get(), collector);
             }
         } else if(statement.isForeachStmt()) {
-            ForeachStmt foreachStmt = statement.asForeachStmt();
+            ForEachStmt foreachStmt = statement.asForeachStmt();
             processStatements(foreachStmt.getBody(), collector);
         } else if(statement.isForStmt()) {
             ForStmt forStmt = statement.asForStmt();
@@ -182,7 +182,7 @@ public class JavaSourceParser {
             if (type instanceof ClassOrInterfaceDeclaration) {
                 ClassOrInterfaceDeclaration classDec = (ClassOrInterfaceDeclaration) type;
 
-                if (classDec.getModifiers().contains(Modifier.PUBLIC)) {
+                if (classDec.getModifiers().contains(Modifier.Keyword.PUBLIC)) {
                     return classDec;
                 }
             }
