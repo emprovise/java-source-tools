@@ -1,6 +1,7 @@
 package com.emprovise.tools.java;
 
 import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
@@ -17,6 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,8 +30,10 @@ public class JavaSourceParser {
     private CompilationUnit compilationUnit;
 
     public JavaSourceParser(File javaFile) throws FileNotFoundException {
+        JavaParser parser = new JavaParser();
         FileInputStream fileInputStream = new FileInputStream(javaFile);
-        this.compilationUnit = JavaParser.parse(fileInputStream);
+        ParseResult<CompilationUnit> parseResult = parser.parse(fileInputStream);
+        this.compilationUnit = parseResult.getResult().orElseThrow(() -> new RuntimeException("Compilation Unit not found"));
     }
 
     public String getPackageName() {
@@ -99,8 +103,8 @@ public class JavaSourceParser {
             if (ifStmt.getElseStmt().isPresent()) {
                 processStatements(ifStmt.getElseStmt().get(), collector);
             }
-        } else if(statement.isForeachStmt()) {
-            ForEachStmt foreachStmt = statement.asForeachStmt();
+        } else if(statement.isForEachStmt()) {
+            ForEachStmt foreachStmt = statement.asForEachStmt();
             processStatements(foreachStmt.getBody(), collector);
         } else if(statement.isForStmt()) {
             ForStmt forStmt = statement.asForStmt();
@@ -119,14 +123,10 @@ public class JavaSourceParser {
             if(returnStmt.getExpression().isPresent()) {
                 collector.add(returnStmt.getExpression().get());
             }
-        } else if(statement.isSwitchEntryStmt()) {
-            SwitchEntryStmt switchEntryStmt = statement.asSwitchEntryStmt();
-            processStatements(switchEntryStmt.getStatements(), collector);
         } else if(statement.isSwitchStmt()) {
             SwitchStmt switchStmt = statement.asSwitchStmt();
-            NodeList<SwitchEntryStmt> entries = switchStmt.getEntries();
-            for (SwitchEntryStmt entryStmt : entries) {
-                processStatements(entryStmt, collector);
+            for (SwitchEntry entryStmt : switchStmt.getEntries()) {
+                processStatements(entryStmt.getStatements(), collector);
             }
         } else if(statement.isSynchronizedStmt()) {
             SynchronizedStmt synchronizedStmt = statement.asSynchronizedStmt();
@@ -182,7 +182,9 @@ public class JavaSourceParser {
             if (type instanceof ClassOrInterfaceDeclaration) {
                 ClassOrInterfaceDeclaration classDec = (ClassOrInterfaceDeclaration) type;
 
-                if (classDec.getModifiers().contains(Modifier.Keyword.PUBLIC)) {
+                NodeList<Modifier> modifiers = classDec.getModifiers();
+
+                if(modifiers != null && modifiers.stream().anyMatch(x -> (x.getKeyword().equals(Modifier.Keyword.PUBLIC)))) {
                     return classDec;
                 }
             }
